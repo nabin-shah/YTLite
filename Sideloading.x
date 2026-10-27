@@ -142,6 +142,5 @@ BOOL isSelf() {
 %end
 
 %ctor {
-    BOOL isAppStoreApp = [[NSFileManager defaultManager] fileExistsAtPath:[[NSBundle mainBundle] appStoreReceiptURL].path];
-    if (!isAppStoreApp) %init(gSideloading);
+    %init(gSideloading);
 }

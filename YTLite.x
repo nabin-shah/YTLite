@@ -17,6 +17,25 @@ static UIImage *YTImageNamed(NSString *imageName) {
 // Disable Ads
 %hook YTIPlayerResponse
 - (BOOL)isMonetized { return ytlBool(@"noAds") ? NO : YES; }
+%new(@@:)
+- (NSMutableArray *)playerAdsArray {
+    return ytlBool(@"noAds") ? [NSMutableArray array] : %orig;
+}
+%new(@@:)
+- (NSMutableArray *)adSlotsArray {
+    return ytlBool(@"noAds") ? [NSMutableArray array] : %orig;
+}
+%end
+
+%hook YTLocalPlaybackController
+- (id)createAdsPlaybackCoordinator {
+    return ytlBool(@"noAds") ? nil : %orig;
+}
+%end
+
+%hook YTAdShieldUtils
++ (id)spamSignalsDictionary { return ytlBool(@"noAds") ? @{} : %orig; }
++ (id)spamSignalsDictionaryWithoutIDFA { return ytlBool(@"noAds") ? @{} : %orig; }
 %end
 
 %hook YTDataUtils
@@ -39,8 +58,12 @@ static UIImage *YTImageNamed(NSString *imageName) {
     NSString *description = [self description];
 
     NSArray *ads = @[@"brand_promo", @"product_carousel", @"product_engagement_panel", @"product_item", @"text_search_ad", @"text_image_button_layout", @"carousel_headered_layout", @"carousel_footered_layout", @"square_image_layout", @"landscape_image_wide_button_layout", @"feed_ad_metadata"];
-    if (ytlBool(@"noAds") && [ads containsObject:description]) {
-        return [NSData data];
+    if (ytlBool(@"noAds")) {
+        for (NSString *ad in ads) {
+            if ([description containsString:ad]) {
+                return [NSData data];
+            }
+        }
     }
 
     NSArray *shortsToRemove = @[@"shorts_shelf.eml", @"shorts_video_cell.eml", @"6Shorts"];
@@ -1217,8 +1240,13 @@ BOOL isTabSelected = NO;
     %orig;
 
     if (!isTabSelected && !ytlBool(@"shortsOnlyMode")) {
-        NSArray *pivotIdentifiers = @[@"FEwhat_to_watch", @"FEexplore", @"FEshorts", @"FEsubscriptions", @"FElibrary"];
-        [self selectItemWithPivotIdentifier:pivotIdentifiers[ytlInt(@"pivotIndex")]];
+        int index = ytlInt(@"pivotIndex");
+        if (index > 0) {
+            NSArray *pivotIdentifiers = @[@"FEwhat_to_watch", @"FEexplore", @"FEshorts", @"FEsubscriptions", @"FElibrary"];
+            if (index < pivotIdentifiers.count) {
+                [self selectItemWithPivotIdentifier:pivotIdentifiers[index]];
+            }
+        }
         isTabSelected = YES;
     }
 
@@ -1381,6 +1409,8 @@ static NSURL *newCoverURL(NSURL *originalURL) {
 // %end
 
 %ctor {
+    %init;
+
     if (ytlBool(@"shortsOnlyMode") && (ytlBool(@"removeShorts") || ytlBool(@"reExplore"))) {
         ytlSetBool(NO, @"removeShorts");
         ytlSetBool(NO, @"reExplore");
