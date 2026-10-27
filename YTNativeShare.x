@@ -21,18 +21,31 @@
 
 #include <UIKit/UIActivityViewController.h>
 
-#import "../YouTubeHeader/YTUIUtils.h"
+@interface YTUIUtils : NSObject
++ (UIViewController *)topViewControllerForPresenting;
+@end
 
-#import "../protobuf/objectivec/GPBDescriptor.h"
-#import "../protobuf/objectivec/GPBMessage.h"
-#import "../protobuf/objectivec/GPBUnknownField.h"
-#import "../protobuf/objectivec/GPBUnknownFieldSet.h"
+@interface GPBExtensionDescriptor : NSObject
+@end
+
+@interface GPBUnknownField : NSObject
+@property (nonatomic, readonly, strong) NSArray *lengthDelimitedList;
+@end
+
+@interface GPBUnknownFieldSet : NSObject
+- (BOOL)hasField:(int32_t)number;
+- (GPBUnknownField *)getField:(int32_t)number;
+@end
+
+@interface GPBMessage : NSObject
+@property (nonatomic, copy) GPBUnknownFieldSet *unknownFields;
++ (instancetype)deserializeFromString:(NSString *)string;
++ (instancetype)parseFromData:(NSData *)data error:(NSError **)error;
+- (BOOL)hasExtension:(GPBExtensionDescriptor *)extension;
+- (id)getExtension:(GPBExtensionDescriptor *)extension;
+@end
 
 #define ytlBool(key)  [[[NSUserDefaults alloc] initWithSuiteName:@"com.dvntm.ytlite"] boolForKey:key]
-
-@interface CustomGPBMessage : GPBMessage
-+ (instancetype)deserializeFromString:(NSString *)string;
-@end
 
 @interface YTICommand : GPBMessage
 @end
